@@ -1,9 +1,9 @@
 import datetime
 import os
-from os import rename
 
 import pandas as pd
 from config import DATA_DIR
+
 
 def hello_date() -> str:
     """Функция, которая в зависимости от текущего времени возвращает пользователю разные приветствия"""
@@ -24,36 +24,74 @@ def hello_date() -> str:
         return greeting
 
 
-def kart_user_info(user_date: str):
+def read_exsel(operations_path: str) -> pd.DataFrame:
+    """Функция чтения файла Exsel с банковскими транзакицями"""
+
+    required_columns = [
+        "Дата операции",
+        "Номер карты",
+        "Сумма операции",
+        "Сумма платежа",
+        "Кэшбэк",
+        "Сумма операции с округлением",
+    ]
+    if os.path.exists(operations_path):
+        excel_df = pd.read_excel(operations_path)
+        if excel_df.empty:
+            raise ValueError("Анализируемый файл пустой")
+        else:
+            for column in required_columns:
+                if column not in excel_df.columns:
+                    raise ValueError(f"Отсутствует необходимый столбец: {column}")
+            return excel_df
+    else:
+        raise ValueError("Файл с транзакциями не найден")
+
+
+def kart_user_info(user_date: str) -> list[dict]:
     """Функция, которая возвращает информацию из файла транзакций по карте:
     последние 4 цифры номера карты, общая сумма расходов и кэшбек"""
 
     operations_path = os.path.join(DATA_DIR, "operations.xlsx")
-    required_columns = ['Дата операции','Номер карты','Сумма операции','Сумма платежа','Кэшбэк','Сумма операции с округлением']
-    if os.path.exists(operations_path):
-        excel_df = pd.read_excel(operations_path)
-        if excel_df.empty:
-            print("Анализируемый файл пустой")
-            return False
-        else:
-            for column in required_columns:
-                if column not in excel_df.columns:
-                    print(f"Отсутствует необходимый столбец: {column}")
-                    return False
-            excel_df['Дата операции'] = pd.to_datetime(excel_df['Дата операции'], format='%d.%m.%Y %H:%M:%S')
-            start_date = user_date
-            end_date = datetime.datetime.now()
-            filtered_df = excel_df[(excel_df['Дата операции'] >= start_date) & (excel_df['Дата операции'] <= end_date)]
-            group_df = filtered_df.groupby('Номер карты').agg(
-                total_spent=('Сумма операции с округлением', 'sum'),
-                cashback=('Кэшбэк', 'sum')
-            ).reset_index()
-            group_df = group_df.rename(columns={'Номер карты': 'last_digits'})
-            return group_df.to_dict(orient="records")
-    else:
-        print("Файл с транзакциями не найден")
+    excel_df = read_exsel(operations_path)
+    excel_df["Дата операции"] = pd.to_datetime(excel_df["Дата операции"], format="%d.%m.%Y %H:%M:%S")
+    start_date = user_date
+    end_date = datetime.datetime.now()
+    filtered_df = excel_df[(excel_df["Дата операции"] >= start_date) & (excel_df["Дата операции"] <= end_date)]
+    group_df = (
+        filtered_df.groupby("Номер карты")
+        .agg(total_spent=("Сумма операции с округлением", "sum"), cashback=("Кэшбэк", "sum"))
+        .reset_index()
+    )
+    group_df = group_df.rename(columns={"Номер карты": "last_digits"})
+    return group_df.to_dict(orient="records")
 
 
-if __name__ == '__main__':
+def top_transactions(user_date: str) -> list[dict]:
+    """Функция, которая выдает топ-5 транзакций по сумме платежа"""
 
-    print(kart_user_info('01-10-2021 00:00:00'))
+    operations_path = os.path.join(DATA_DIR, "operations.xlsx")
+    excel_df = read_exsel(operations_path)
+    excel_df["Дата операции"] = pd.to_datetime(excel_df["Дата операции"], format="%d.%m.%Y %H:%M:%S")
+    start_date = user_date
+    end_date = datetime.datetime.now()
+    filtered_date = excel_df[(excel_df["Дата операции"] >= start_date) & (excel_df["Дата операции"] <= end_date)]
+    filtered_sum = filtered_date.sort_values(by="Сумма операции с округлением", ascending=False).head(5)
+    filtered_sum["Дата операции"] = filtered_sum["Дата операции"].dt.strftime("%d.%m.%Y")
+    filtered_sum = filtered_sum.rename(
+        columns={
+            "Дата операции": "date",
+            "Сумма платежа": "amount",
+            "Категория": "category",
+            "Описание": "description",
+        }
+    )
+    filtered_sum = filtered_sum[['date', 'amount', 'category', 'description']]
+    return filtered_sum.to_dict(orient="records")
+
+
+if __name__ == "__main__":
+
+    user_date = "01-10-2021 00:00:00"
+    print(kart_user_info(user_date))
+    print(top_transactions(user_date))
