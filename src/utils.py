@@ -1,8 +1,15 @@
 import datetime
+import json
 import os
-
+import typing
 import pandas as pd
-from config import DATA_DIR
+import requests
+from config import DATA_DIR, ROOT_DIR
+
+from dotenv import load_dotenv
+
+load_dotenv()
+API_KEY = os.getenv("API_KEY")
 
 
 def hello_date() -> str:
@@ -48,6 +55,23 @@ def read_exsel(operations_path: str) -> pd.DataFrame:
         raise ValueError("Файл с транзакциями не найден")
 
 
+def read_json() -> typing.Any:
+    """Функция чтения файла JSON с пользовательскими настройками,
+    где хранятся данные о валютах и акциях, которые будут использоваться
+    для отображения на web-страницах"""
+
+    operations_path_json = os.path.join(ROOT_DIR, "user_settings.json")
+    if os.path.exists(operations_path_json):
+        with open(operations_path_json, "r", encoding="UTF-8") as f:
+            try:
+                data = json.load(f)
+                return data
+            except ValueError as e:
+                return f"Ошибка чтения файла: {e}"
+    else:
+        raise ValueError("Файл с настройками не найден")
+
+
 def kart_user_info(user_date: str) -> list[dict]:
     """Функция, которая возвращает информацию из файла транзакций по карте:
     последние 4 цифры номера карты, общая сумма расходов и кэшбек"""
@@ -86,12 +110,45 @@ def top_transactions(user_date: str) -> list[dict]:
             "Описание": "description",
         }
     )
-    filtered_sum = filtered_sum[['date', 'amount', 'category', 'description']]
+    filtered_sum = filtered_sum[["date", "amount", "category", "description"]]
     return filtered_sum.to_dict(orient="records")
 
+
+def exchange_rate():
+    """Функция, которая возвращает курс валют, которые указаны
+     в файле  user_settings, к рублю на текущую дату"""
+
+    user_settings = read_json()
+    currency_base = user_settings.get("user_currencies", [])
+    currency_rub = "RUB"
+    headers = {
+        "apikey": API_KEY
+    }
+    exchange_rates = {}
+
+    for currency in currency_base:
+        url = f"https://api.apilayer.com/exchangerates_data/latest?symbols={currency_rub}&base={currency}"
+        try:
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                result_answer = response.json()
+                if "rates" in result_answer and currency_rub in result_answer["rates"]:
+                    exchange_rates[currency] = float(result_answer["rates"][currency_rub])
+                else:
+                    print(f"Курс для {currency} не найден.")
+            else:
+                print(f"Ошибка конвертации валюты ({currency}): {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"Ошибка конвертации: {e}")
+
+    return exchange_rates
 
 if __name__ == "__main__":
 
     user_date = "01-10-2021 00:00:00"
-    print(kart_user_info(user_date))
-    print(top_transactions(user_date))
+    #operations_path_json = os.path.join(ROOT_DIR, "user_settings.json")
+    #print(operations_path_json)
+    # print(kart_user_info(user_date))
+    # print(top_transactions(user_date)) ROOT_DIR
+    #print(read_json(operations_path_json))
+    #print(exchange_rate())
