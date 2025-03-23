@@ -18,11 +18,22 @@ file_logger.addHandler(file_handler)
 file_logger.setLevel(logging.DEBUG)
 
 
-def profitable_cashback(data: pd.DataFrame, year: int, month: int) -> typing.Dict[str, float]:
+def profitable_cashback(data: pd.DataFrame, year: int, month: int) -> typing.Any:
     """Функция для анализа, какие категории кэшбека наиболее выгодные. Рассчитывает, какие
     суммы потрачены на каждую категорию операций и вычисляет возможный кэшбек по ним"""
 
     data["Дата платежа"] = pd.to_datetime(data["Дата платежа"], format="%d.%m.%Y")
+
+    min_year = data["Дата платежа"].dt.year.min()
+    max_year = data["Дата платежа"].dt.year.max()
+    if year < min_year or year > max_year:
+        file_logger.error("Ошибка: для анализа введен год, которого нет в файле с транзакциями")
+        raise ValueError(f"Год должен быть в диапазоне от {min_year} до {max_year}.")
+
+    if month < 1 or month > 12:
+        file_logger.error("Ошибка: месяц для анализа транзакций не существует")
+        raise ValueError("Месяц должен быть от 1 до 12.")
+
     filtered_df = data[(data["Дата платежа"].dt.year == year) & (data["Дата платежа"].dt.month == month)]
 
     group_df = filtered_df.groupby(["Категория"])
@@ -43,9 +54,6 @@ def profitable_cashback(data: pd.DataFrame, year: int, month: int) -> typing.Dic
         raise ValueError("Проверьте правильность переданных данных. Словарь не создан.")
 
 
-
-
-
 if __name__ == "__main__":
 
-    print(profitable_cashback(read_exsel(operations_path), 2020, 12))
+    print(profitable_cashback(read_exsel(operations_path), 2018, 10))

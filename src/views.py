@@ -40,7 +40,7 @@ def web_main(date_time: str) -> typing.Any:
         return json_result
     else:
         file_logger.error("JSON-ответ не сформирован")
-        raise ValueError ("Проверьте правильность входных данных")
+        raise ValueError("Проверьте правильность входных данных")
 
 
 if __name__ == "__main__":
