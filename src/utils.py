@@ -72,7 +72,7 @@ def read_json(operations_path_json: str) -> typing.Any:
         raise ValueError("Файл с настройками не найден")
 
 
-def kart_user_info(user_date: str, operations_path: str) -> list[dict]:
+def kart_user_info(user_date: str, operations_path: str) -> typing.Any:
     """Функция, которая возвращает информацию из файла транзакций по карте:
     последние 4 цифры номера карты, общая сумма расходов и кэшбек"""
 
@@ -90,7 +90,7 @@ def kart_user_info(user_date: str, operations_path: str) -> list[dict]:
     return group_df.to_dict(orient="records")
 
 
-def top_transactions(user_date: str, operations_path: str) -> list[dict]:
+def top_transactions(user_date: str, operations_path: str) -> typing.Any:
     """Функция, которая выдает топ-5 транзакций по сумме платежа"""
 
     excel_df = read_exsel(operations_path)
@@ -112,7 +112,7 @@ def top_transactions(user_date: str, operations_path: str) -> list[dict]:
     return filtered_sum.to_dict(orient="records")
 
 
-def exchange_rate(operations_path_json: str) -> list[dict[str, typing.Any]]:
+def exchange_rate(operations_path_json: str) -> typing.Any:
     """Функция, которая возвращает курс валют, которые указаны
     в файле  user_settings, к рублю на текущую дату"""
 
@@ -142,7 +142,7 @@ def exchange_rate(operations_path_json: str) -> list[dict[str, typing.Any]]:
     return result
 
 
-def stock_prices(operations_path_json: str) -> list[dict[str, typing.Any]]:
+def stock_prices(operations_path_json: str) -> typing.Any:
     """Функция, которая возвращает стоимость акций из S&P500 на текущую дату"""
 
     user_settings = read_json(operations_path_json)
@@ -173,10 +173,9 @@ if __name__ == "__main__":
     operations_path = os.path.join(DATA_DIR, "operations.xlsx")
     operations_path_json = os.path.join(ROOT_DIR, "user_settings.json")
     user_date = "01-10-2021 00:00:00"
-    # operations_path_json = os.path.join(ROOT_DIR, "user_settings.json")
-    # print(operations_path_json)
     # print(kart_user_info(user_date, operations_path))
     # print(top_transactions(user_date, operations_path))
     # print(read_json(operations_path_json))
+    # print(read_exsel(operations_path))
     # print(exchange_rate(operations_path_json))
     # print(stock_prices(operations_path_json))
