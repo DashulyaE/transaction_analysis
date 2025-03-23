@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
+API_KEY_ALPHA = os.getenv("API_KEY_ALPHA")
 
 
 def hello_date() -> str:
@@ -55,12 +56,11 @@ def read_exsel(operations_path: str) -> pd.DataFrame:
         raise ValueError("Файл с транзакциями не найден")
 
 
-def read_json() -> typing.Any:
+def read_json(operations_path_json: str) -> typing.Any:
     """Функция чтения файла JSON с пользовательскими настройками,
     где хранятся данные о валютах и акциях, которые будут использоваться
     для отображения на web-страницах"""
 
-    operations_path_json = os.path.join(ROOT_DIR, "user_settings.json")
     if os.path.exists(operations_path_json):
         with open(operations_path_json, "r", encoding="UTF-8") as f:
             try:
@@ -72,11 +72,10 @@ def read_json() -> typing.Any:
         raise ValueError("Файл с настройками не найден")
 
 
-def kart_user_info(user_date: str) -> list[dict]:
+def kart_user_info(user_date: str, operations_path: str) -> list[dict]:
     """Функция, которая возвращает информацию из файла транзакций по карте:
     последние 4 цифры номера карты, общая сумма расходов и кэшбек"""
 
-    operations_path = os.path.join(DATA_DIR, "operations.xlsx")
     excel_df = read_exsel(operations_path)
     excel_df["Дата операции"] = pd.to_datetime(excel_df["Дата операции"], format="%d.%m.%Y %H:%M:%S")
     start_date = user_date
@@ -91,10 +90,9 @@ def kart_user_info(user_date: str) -> list[dict]:
     return group_df.to_dict(orient="records")
 
 
-def top_transactions(user_date: str) -> list[dict]:
+def top_transactions(user_date: str, operations_path: str) -> list[dict]:
     """Функция, которая выдает топ-5 транзакций по сумме платежа"""
 
-    operations_path = os.path.join(DATA_DIR, "operations.xlsx")
     excel_df = read_exsel(operations_path)
     excel_df["Дата операции"] = pd.to_datetime(excel_df["Дата операции"], format="%d.%m.%Y %H:%M:%S")
     start_date = user_date
@@ -114,16 +112,14 @@ def top_transactions(user_date: str) -> list[dict]:
     return filtered_sum.to_dict(orient="records")
 
 
-def exchange_rate():
+def exchange_rate(operations_path_json: str) -> list[dict[str, typing.Any]]:
     """Функция, которая возвращает курс валют, которые указаны
-     в файле  user_settings, к рублю на текущую дату"""
+    в файле  user_settings, к рублю на текущую дату"""
 
-    user_settings = read_json()
+    user_settings = read_json(operations_path_json)
     currency_base = user_settings.get("user_currencies", [])
     currency_rub = "RUB"
-    headers = {
-        "apikey": API_KEY
-    }
+    headers = {"apikey": API_KEY}
     exchange_rates = {}
 
     for currency in currency_base:
@@ -141,14 +137,46 @@ def exchange_rate():
         except requests.exceptions.RequestException as e:
             print(f"Ошибка конвертации: {e}")
 
-    return exchange_rates
+        result = [{"currency": key, "rate": value} for key, value in exchange_rates.items()]
+
+    return result
+
+
+def stock_prices(operations_path_json: str) -> dict:
+    """Функция, которая возвращает стоимость акций из S&P500 на текущую дату"""
+
+    user_settings = read_json(operations_path_json)
+    currency_stocks = user_settings.get("user_stocks", [])
+    results = {}
+
+    for currency in currency_stocks:
+        url = f"https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={currency}&apikey={API_KEY_ALPHA}"
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                result_answer = response.json()
+                if "Time Series (Daily)" in result_answer:
+                    latest_date = next(iter(result_answer["Time Series (Daily)"]))
+                    latest_price = result_answer["Time Series (Daily)"][latest_date]["4. close"]
+                    results[currency] = latest_price
+                else:
+                    print(f"Нет данных о цене для {currency}.")
+            else:
+                print(f"Цена для {currency} не найдена. Cтатус: {response.status_code}.")
+        except requests.exceptions.RequestException as e:
+            print(f"Ошибка запроса: {e}")
+
+    return results
+
 
 if __name__ == "__main__":
-
+    operations_path = os.path.join(DATA_DIR, "operations.xlsx")
+    operations_path_json = os.path.join(ROOT_DIR, "user_settings.json")
     user_date = "01-10-2021 00:00:00"
-    #operations_path_json = os.path.join(ROOT_DIR, "user_settings.json")
-    #print(operations_path_json)
-    # print(kart_user_info(user_date))
-    # print(top_transactions(user_date)) ROOT_DIR
-    #print(read_json(operations_path_json))
-    #print(exchange_rate())
+    # operations_path_json = os.path.join(ROOT_DIR, "user_settings.json")
+    # print(operations_path_json)
+    # print(kart_user_info(user_date, operations_path))
+    # print(top_transactions(user_date, operations_path))
+    # print(read_json(operations_path_json))
+    # print(exchange_rate(operations_path_json))
+    # print(stock_prices(operations_path_json))
