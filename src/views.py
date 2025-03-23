@@ -1,15 +1,23 @@
+import logging
 import os
 import json
 import typing
 
-from config import DATA_DIR, ROOT_DIR
+from config import DATA_DIR, ROOT_DIR, LOGS_DIR
 from src.utils import hello_date, kart_user_info, top_transactions, exchange_rate, stock_prices
 
 operations_path = os.path.join(DATA_DIR, "operations.xlsx")
 operations_path_json = os.path.join(ROOT_DIR, "user_settings.json")
 
+log_file_path = os.path.join(LOGS_DIR, "views.log")
+file_logger = logging.getLogger("views")
+file_handler = logging.FileHandler(log_file_path, encoding="utf-8", mode="w")
+file_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+file_handler.setFormatter(file_formatter)
+file_logger.addHandler(file_handler)
+file_logger.setLevel(logging.DEBUG)
 
-def main(date_time: str) -> typing.Any:
+def web_main(date_time: str) -> typing.Any:
     """Главная функция, которая принимает на вход строку с датой и временем в формате
     YYYY-MM-DD HH:MM:SS и возвращающую JSON-ответ со следующими данными:
     - приветствие, в зависимости от времени текущего суток
@@ -26,10 +34,15 @@ def main(date_time: str) -> typing.Any:
     result_total["stock_prices"] = stock_prices(operations_path_json)
 
     json_result = json.dumps(result_total, ensure_ascii=False)
-    return json_result
+    if json_result != {}:
+        file_logger.info("JSON-ответ успешно сформирован")
+        return json_result
+    else:
+        file_logger.error("JSON-ответ не сформирован")
+        print("Проверьте правильность входных данных")
 
 
 if __name__ == "__main__":
 
     date_time_user = "01-10-2020 00:00:00"
-    print(main(date_time_user))
+    print(web_main(date_time_user))
