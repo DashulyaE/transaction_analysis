@@ -147,7 +147,7 @@ def stock_prices(operations_path_json: str) -> dict:
 
     user_settings = read_json(operations_path_json)
     currency_stocks = user_settings.get("user_stocks", [])
-    results = {}
+    results = []
 
     for currency in currency_stocks:
         url = f"https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={currency}&apikey={API_KEY_ALPHA}"
@@ -157,8 +157,8 @@ def stock_prices(operations_path_json: str) -> dict:
                 result_answer = response.json()
                 if "Time Series (Daily)" in result_answer:
                     latest_date = next(iter(result_answer["Time Series (Daily)"]))
-                    latest_price = result_answer["Time Series (Daily)"][latest_date]["4. close"]
-                    results[currency] = latest_price
+                    latest_price = float(result_answer["Time Series (Daily)"][latest_date]["4. close"])
+                    results.append({"stock": currency, "price": latest_price})
                 else:
                     print(f"Нет данных о цене для {currency}.")
             else:
@@ -178,5 +178,5 @@ if __name__ == "__main__":
     # print(kart_user_info(user_date, operations_path))
     # print(top_transactions(user_date, operations_path))
     # print(read_json(operations_path_json))
-    # print(exchange_rate(operations_path_json))
-    # print(stock_prices(operations_path_json))
+    #print(exchange_rate(operations_path_json))
+    #print(stock_prices(operations_path_json))
