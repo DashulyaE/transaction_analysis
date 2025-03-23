@@ -17,6 +17,7 @@ file_handler.setFormatter(file_formatter)
 file_logger.addHandler(file_handler)
 file_logger.setLevel(logging.DEBUG)
 
+
 def web_main(date_time: str) -> typing.Any:
     """Главная функция, которая принимает на вход строку с датой и временем в формате
     YYYY-MM-DD HH:MM:SS и возвращающую JSON-ответ со следующими данными:
@@ -39,7 +40,7 @@ def web_main(date_time: str) -> typing.Any:
         return json_result
     else:
         file_logger.error("JSON-ответ не сформирован")
-        print("Проверьте правильность входных данных")
+        raise ValueError ("Проверьте правильность входных данных")
 
 
 if __name__ == "__main__":

@@ -4,7 +4,6 @@ import os
 import typing
 import pandas as pd
 import requests
-from config import DATA_DIR, ROOT_DIR
 
 from dotenv import load_dotenv
 
@@ -167,15 +166,3 @@ def stock_prices(operations_path_json: str) -> typing.Any:
             print(f"Ошибка запроса: {e}")
 
     return results
-
-
-if __name__ == "__main__":
-    operations_path = os.path.join(DATA_DIR, "operations.xlsx")
-    operations_path_json = os.path.join(ROOT_DIR, "user_settings.json")
-    user_date = "01-10-2021 00:00:00"
-    # print(kart_user_info(user_date, operations_path))
-    # print(top_transactions(user_date, operations_path))
-    # print(read_json(operations_path_json))
-    # print(read_exsel(operations_path))
-    # print(exchange_rate(operations_path_json))
-    # print(stock_prices(operations_path_json))
