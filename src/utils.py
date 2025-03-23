@@ -142,7 +142,7 @@ def exchange_rate(operations_path_json: str) -> list[dict[str, typing.Any]]:
     return result
 
 
-def stock_prices(operations_path_json: str) -> dict:
+def stock_prices(operations_path_json: str) -> list[dict[str, typing.Any]]:
     """Функция, которая возвращает стоимость акций из S&P500 на текущую дату"""
 
     user_settings = read_json(operations_path_json)
@@ -178,5 +178,5 @@ if __name__ == "__main__":
     # print(kart_user_info(user_date, operations_path))
     # print(top_transactions(user_date, operations_path))
     # print(read_json(operations_path_json))
-    #print(exchange_rate(operations_path_json))
-    #print(stock_prices(operations_path_json))
+    # print(exchange_rate(operations_path_json))
+    # print(stock_prices(operations_path_json))
