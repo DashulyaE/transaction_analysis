@@ -10,9 +10,9 @@ from src.utils import read_exsel
 from src.views import operations_path
 
 log_file_path = os.path.join(LOGS_DIR, "services.log")
-file_logger = logging.getLogger("views")
+file_logger = logging.getLogger("services")
 file_handler = logging.FileHandler(log_file_path, encoding="utf-8", mode="w")
-file_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+file_formatter = logging.Formatter("%(asctime)s - %(name)s – %(funcName)s – %(levelname)s - %(message)s")
 file_handler.setFormatter(file_formatter)
 file_logger.addHandler(file_handler)
 file_logger.setLevel(logging.DEBUG)
