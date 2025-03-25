@@ -1,5 +1,6 @@
 import logging
-from typing import Optional, Callable
+import typing
+from typing import Optional, Callable, TypeVar, Any
 import os
 import pandas as pd
 import datetime
@@ -16,12 +17,18 @@ file_handler.setFormatter(file_formatter)
 file_logger.addHandler(file_handler)
 file_logger.setLevel(logging.DEBUG)
 
+T = TypeVar('T', bound=Callable[..., pd.DataFrame])
 
+@typing.no_type_check
 def save_report_function(filename: str = "standart_report.xlsx"):
-    def decorator(func: Callable):
+    """Функция-декоратор, которая записывает ответ, сгенерированный функцией-отчетом, \
+    в отдельный файл с расширением xlsx"""
+
+    def decorator(func: T):
         def wrapper(*args, **kwargs):
             result = func(*args, **kwargs)
             result.to_excel(filename, index=False)
+            file_logger.info(f"Отчет успешно записан в файл {filename}")
             print(f"Отчет сохранен в файл: {filename}")
             return result
 
@@ -71,4 +78,4 @@ if __name__ == "__main__":
     operations_path = os.path.join(DATA_DIR, "operations.xlsx")
     transactions_ex = read_exsel(operations_path)
     transactions = pd.DataFrame(transactions_ex)
-    print(spending_by_category(transactions, "Супермаркеты", "10.01.2025"))
+    print(spending_by_category(transactions, "Супермаркеты", "10.10.2021"))
