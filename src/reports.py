@@ -1,13 +1,12 @@
 import logging
 import typing
-from typing import Optional, Callable, TypeVar, Any
+from typing import Optional
 import os
 import pandas as pd
 import datetime
 from dateutil.relativedelta import relativedelta
 
-from config import DATA_DIR, LOGS_DIR
-from src.utils import read_exsel
+from config import LOGS_DIR
 
 log_file_path = os.path.join(LOGS_DIR, "reports.log")
 file_logger = logging.getLogger("reports")
@@ -17,14 +16,13 @@ file_handler.setFormatter(file_formatter)
 file_logger.addHandler(file_handler)
 file_logger.setLevel(logging.DEBUG)
 
-T = TypeVar('T', bound=Callable[..., pd.DataFrame])
 
 @typing.no_type_check
 def save_report_function(filename: str = "standart_report.xlsx"):
     """Функция-декоратор, которая записывает ответ, сгенерированный функцией-отчетом, \
     в отдельный файл с расширением xlsx"""
 
-    def decorator(func: T):
+    def decorator(func):
         def wrapper(*args, **kwargs):
             result = func(*args, **kwargs)
             result.to_excel(filename, index=False)
@@ -42,6 +40,7 @@ def spending_by_category(transactions: pd.DataFrame, category: str, date: Option
     """Функция, которая возвращает траты по заданной категории за последние 3 месяца"""
 
     file_logger.info("Начало работы функции")
+    transactions["Категория"] = transactions["Категория"].str.lower()
     transactions["Дата платежа"] = pd.to_datetime(transactions["Дата платежа"], format="%d.%m.%Y")
     if date is None:
         date_end = datetime.datetime.now()
@@ -71,11 +70,3 @@ def spending_by_category(transactions: pd.DataFrame, category: str, date: Option
         )
         file_logger.info("Успешное окончание работы функции")
         return result
-
-
-if __name__ == "__main__":
-
-    operations_path = os.path.join(DATA_DIR, "operations.xlsx")
-    transactions_ex = read_exsel(operations_path)
-    transactions = pd.DataFrame(transactions_ex)
-    print(spending_by_category(transactions, "Супермаркеты", "10.10.2021"))

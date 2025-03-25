@@ -20,7 +20,7 @@ file_logger.setLevel(logging.DEBUG)
 
 def web_main(date_time: str) -> typing.Any:
     """Главная функция, которая принимает на вход строку с датой и временем в формате
-    YYYY-MM-DD HH:MM:SS и возвращающую JSON-ответ со следующими данными:
+    DD-MM-YYYY HH:MM:SS и возвращающую JSON-ответ со следующими данными:
     - приветствие, в зависимости от времени текущего суток
     - статистику по каждой карте в выбранный промежуток времени
     - топ-5 транзакций по сумме платежа
@@ -41,9 +41,3 @@ def web_main(date_time: str) -> typing.Any:
     else:
         file_logger.error("JSON-ответ не сформирован")
         raise ValueError("Проверьте правильность входных данных")
-
-
-if __name__ == "__main__":
-
-    date_time_user = "01-10-2020 00:00:00"
-    print(web_main(date_time_user))
