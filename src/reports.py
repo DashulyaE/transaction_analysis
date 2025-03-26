@@ -1,4 +1,5 @@
 import logging
+import re
 import typing
 from typing import Optional
 import os
@@ -7,6 +8,8 @@ import datetime
 from dateutil.relativedelta import relativedelta
 
 from config import LOGS_DIR
+from src.utils import read_exsel
+from src.views import operations_path
 
 log_file_path = os.path.join(LOGS_DIR, "reports.log")
 file_logger = logging.getLogger("reports")
@@ -39,34 +42,37 @@ def save_report_function(filename: str = "standart_report.xlsx"):
 def spending_by_category(transactions: pd.DataFrame, category: str, date: Optional[str] = None) -> pd.DataFrame:
     """Функция, которая возвращает траты по заданной категории за последние 3 месяца"""
 
+    date_pattern_rep = r"^\d{2}\.\d{2}\.\d{4}$"
     file_logger.info("Начало работы функции")
     transactions["Категория"] = transactions["Категория"].str.lower()
     transactions["Дата платежа"] = pd.to_datetime(transactions["Дата платежа"], format="%d.%m.%Y")
     if date is None:
-        date_end = datetime.datetime.now()
-    else:
+        date = datetime.datetime.now().strftime('%d.%m.%Y')
+
+    if re.match(date_pattern_rep, date):
         date_end = datetime.datetime.strptime(date, "%d.%m.%Y")
+        date_start = date_end - relativedelta(months=3)
+        filtered_df = transactions[
+            (transactions["Категория"] == category)
+            & (transactions["Дата платежа"] >= date_start)
+            & (transactions["Дата платежа"] <= date_end)
+        ]
 
-    date_start = date_end - relativedelta(months=3)
-    filtered_df = transactions[
-        (transactions["Категория"] == category)
-        & (transactions["Дата платежа"] >= date_start)
-        & (transactions["Дата платежа"] <= date_end)
-    ]
+        if filtered_df.empty:
+            file_logger.error(f"Данные не найдены, либо расходов по категории {category} в заданный период не было.")
+            raise ValueError(f"Не найдены расходы по категории {category} за указанный период")
+        else:
+            total_sum = filtered_df["Сумма операции с округлением"].sum()
 
-    if filtered_df.empty:
-        file_logger.error(f"Данные не найдены, либо расходов по категории {category} в заданный период не было.")
-        raise ValueError(f"Не найдены расходы по категории {category} за указанный период")
+            result = pd.DataFrame(
+                {
+                    "category": [category],
+                    "total_sum": [total_sum],
+                    "date_start": [date_start.strftime("%Y-%m-%d")],
+                    "date_end": [date_end.strftime("%Y-%m-%d")],
+                }
+            )
+            file_logger.info("Успешное окончание работы функции")
+            return result
     else:
-        total_sum = filtered_df["Сумма операции с округлением"].sum()
-
-        result = pd.DataFrame(
-            {
-                "category": [category],
-                "total_sum": [total_sum],
-                "date_start": [date_start.strftime("%Y-%m-%d")],
-                "date_end": [date_end.strftime("%Y-%m-%d")],
-            }
-        )
-        file_logger.info("Успешное окончание работы функции")
-        return result
+        raise ValueError('Дата должна быть формата "%d.%m.%Y"')

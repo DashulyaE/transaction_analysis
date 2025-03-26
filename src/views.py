@@ -1,6 +1,7 @@
 import logging
 import os
 import json
+import re
 import typing
 
 from config import DATA_DIR, ROOT_DIR, LOGS_DIR
@@ -27,17 +28,22 @@ def web_main(date_time: str) -> typing.Any:
     - курс валют
     - Стоимость акций из S&P500"""
 
-    result_total = {}
-    result_total["greeting"] = hello_date()
-    result_total["cards"] = kart_user_info(date_time, operations_path)
-    result_total["top_transactions"] = top_transactions(date_time, operations_path)
-    result_total["currency_rates"] = exchange_rate(operations_path_json)
-    result_total["stock_prices"] = stock_prices(operations_path_json)
+    date_pattern = r"^\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}$"
+    if re.match(date_pattern, date_time):
+        result_total = {}
+        result_total["greeting"] = hello_date()
+        result_total["cards"] = kart_user_info(date_time, operations_path)
+        result_total["top_transactions"] = top_transactions(date_time, operations_path)
+        result_total["currency_rates"] = exchange_rate(operations_path_json)
+        result_total["stock_prices"] = stock_prices(operations_path_json)
 
-    json_result = json.dumps(result_total, ensure_ascii=False)
-    if json_result != {}:
-        file_logger.info("JSON-ответ успешно сформирован")
-        return json_result
+        json_result = json.dumps(result_total, ensure_ascii=False)
+        if json_result != {}:
+            file_logger.info("JSON-ответ успешно сформирован")
+            return json_result
+        else:
+            file_logger.error("JSON-ответ не сформирован")
+            raise ValueError("Проверьте правильность входных данных")
     else:
-        file_logger.error("JSON-ответ не сформирован")
-        raise ValueError("Проверьте правильность входных данных")
+        file_logger.error("Введите дату в формате DD-MM-YYYY HH:MM:SS")
+        raise ValueError ("Введите дату в формате DD-MM-YYYY HH:MM:SS")
