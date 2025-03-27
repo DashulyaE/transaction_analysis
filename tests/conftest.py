@@ -3,7 +3,7 @@ import pytest
 
 
 @pytest.fixture
-def sample_data():
+def sample_data() -> pd.DataFrame:
     """Фикстура для создания примерного DataFrame."""
     data = {
         "Дата платежа": pd.to_datetime(
@@ -31,4 +31,15 @@ def sample_data():
         "Сумма операции с округлением": [200, 150, 300, 400, 100, 250, 450, 350],
     }
 
+    return pd.DataFrame(data)
+
+
+@pytest.fixture
+def sample_transactions() -> pd.DataFrame:
+    """Фикстура для тестирования с примером транзакций."""
+    data = {
+        "Категория": ["еда", "транспорт", "еда", "развлечения", "еда"],
+        "Дата платежа": ["01.01.2023", "15.01.2023", "20.02.2023", "10.03.2023", "05.03.2023"],
+        "Сумма операции с округлением": [100, 200, 150, 300, 250],
+    }
     return pd.DataFrame(data)

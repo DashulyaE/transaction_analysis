@@ -46,4 +46,4 @@ def web_main(date_time: str) -> typing.Any:
             raise ValueError("Проверьте правильность входных данных")
     else:
         file_logger.error("Введите дату в формате DD-MM-YYYY HH:MM:SS")
-        raise ValueError ("Введите дату в формате DD-MM-YYYY HH:MM:SS")
+        raise ValueError("Введите дату в формате DD-MM-YYYY HH:MM:SS")

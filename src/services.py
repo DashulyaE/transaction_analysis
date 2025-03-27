@@ -42,10 +42,10 @@ def profitable_cashback(data: pd.DataFrame, year: int, month: int) -> typing.Any
                 return json_result
             else:
                 file_logger.error("JSON объект не создан.")
-                raise ValueError ("Проверьте правильность переданных данных. Словарь не создан.")
+                raise ValueError("Проверьте правильность переданных данных. Словарь не создан.")
         else:
             file_logger.error("Ошибка: месяц должен быть в диапазоне от 1 до 12")
-            raise ValueError ("Месяц должен быть в диапазоне от 1 до 12")
+            raise ValueError("Месяц должен быть в диапазоне от 1 до 12")
     else:
         file_logger.error("Ошибка: для анализа введен год, которого нет в файле с транзакциями")
         raise ValueError(f"Год должен быть в диапазоне от {min_year} до {max_year}.")

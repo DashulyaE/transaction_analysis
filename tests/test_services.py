@@ -29,6 +29,7 @@ def test_profitable_cashback_correct_structure(sample_data):
     assert "Продукты" in result_dict
     assert "Развлечения" in result_dict
 
+
 def test_profitable_cashback_month(sample_data):
     """Тестирует сценарий с ошибочным месяцем."""
     with pytest.raises(ValueError) as excinfo:
@@ -41,4 +42,4 @@ def test_profitable_cashback_year(sample_data):
 
     with pytest.raises(ValueError) as excinfo:
         profitable_cashback(sample_data, 2025, 10)
-    assert f"Год должен быть в диапазоне от 2023 до 2023." in str(excinfo.value)
+    assert "Год должен быть в диапазоне от 2023 до 2023." in str(excinfo.value)

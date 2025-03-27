@@ -1,29 +1,32 @@
 import json
 import unittest
 from datetime import datetime
-from unittest.mock import patch
+from unittest import mock
+from unittest.mock import patch, MagicMock
 
 import pandas as pd
 import os
 import tempfile
 import pytest
+import requests
 
-from src.utils import read_exsel, read_json, kart_user_info, top_transactions, hello_date
+from src.utils import read_exsel, read_json, kart_user_info, top_transactions, hello_date, exchange_rate, stock_prices
+
 
 def test_hello_date():
-    with patch('datetime.datetime') as mock_datetime:
+    with patch("datetime.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2023, 10, 10, 2, 0, 0)
         assert hello_date() == "Доброй ночи"
 
-    with patch('datetime.datetime') as mock_datetime:
+    with patch("datetime.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2023, 10, 10, 8, 0, 0)
         assert hello_date() == "Доброе утро"
 
-    with patch('datetime.datetime') as mock_datetime:
+    with patch("datetime.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2023, 10, 10, 14, 0, 0)
         assert hello_date() == "Добрый день"
 
-    with patch('datetime.datetime') as mock_datetime:
+    with patch("datetime.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2023, 10, 10, 19, 0, 0)
         assert hello_date() == "Добрый вечер"
 
@@ -162,8 +165,15 @@ def test_top_transactions(mock_read_exsel):
         "Сумма операции с округлением": [1000, 2000, 1500, 3000, 2500, 4000, 3500],
         "Сумма платежа": [1000, 2000, 1500, 3000, 2500, 4000, 3500],
         "Категория": ["Food", "Transport", "Utilities", "Entertainment", "Groceries", "Investments", "Savings"],
-        "Описание": ["Grocery shopping", "Bus fare", "Electricity bill", "Movie tickets", "Weekly shopping",
-                     "Stocks purchase", "Bank interest"]
+        "Описание": [
+            "Grocery shopping",
+            "Bus fare",
+            "Electricity bill",
+            "Movie tickets",
+            "Weekly shopping",
+            "Stocks purchase",
+            "Bank interest",
+        ],
     }
     df = pd.DataFrame(data)
     mock_read_exsel.return_value = df
@@ -177,8 +187,138 @@ def test_top_transactions(mock_read_exsel):
         {"date": "01.03.2023", "amount": 3500, "category": "Savings", "description": "Bank interest"},
         {"date": "04.01.2023", "amount": 3000, "category": "Entertainment", "description": "Movie tickets"},
         {"date": "05.01.2023", "amount": 2500, "category": "Groceries", "description": "Weekly shopping"},
-        {"date": "02.01.2023", "amount": 2000, "category": "Transport", "description": "Bus fare"}
+        {"date": "02.01.2023", "amount": 2000, "category": "Transport", "description": "Bus fare"},
     ]
 
     # Проверка результатов
     assert result == expected_result, f"Expected {expected_result}, but got {result}"
+
+
+def test_successful_response():
+    with patch("src.utils.read_json") as mock_read_json, patch("src.utils.requests.get") as mock_get:
+        # Предполагаем, что корректный JSON-файл и успешный ответ API
+        mock_read_json.return_value = {"user_currencies": ["USD", "EUR"]}
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"rates": {"RUB": 74.12}}
+        mock_get.return_value = mock_response
+
+        result = exchange_rate("path_to_user_settings.json")
+
+        expected_result = [{"currency": "USD", "rate": 74.12}, {"currency": "EUR", "rate": 74.12}]
+
+        assert result == expected_result
+
+
+def test_currency_not_found():
+    with patch("src.utils.read_json") as mock_read_json, patch("src.utils.requests.get") as mock_get:
+        # Тест, когда валюта не найдена в ответе API
+        mock_read_json.return_value = {"user_currencies": ["USD"]}
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"rates": {}}
+        mock_get.return_value = mock_response
+
+        with (
+            unittest.mock.patch("src.utils.file_logger"),
+            unittest.mock.patch("src.utils.logging.Logger"),
+        ):
+            result = exchange_rate("user_settings.json")
+        expected_result = []
+        assert result == expected_result
+
+
+def test_api_error():
+    with patch("src.utils.read_json") as mock_read_json, patch("src.utils.requests.get") as mock_get:
+        # Тест, когда API возвращает ошибку
+        mock_read_json.return_value = {"user_currencies": ["USD"]}
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_get.return_value = mock_response
+
+        with (
+            unittest.mock.patch("src.utils.file_logger"),
+            unittest.mock.patch("src.utils.logging.Logger"),
+        ):
+            result = exchange_rate("user_settings.json")
+
+        expected_result = []
+        assert result == expected_result
+
+
+def test_request_exception():
+    with patch("src.utils.read_json") as mock_read_json, patch("src.utils.requests.get") as mock_get:
+        # Тест на исключение при запросе
+        mock_read_json.return_value = {"user_currencies": ["USD"]}
+        mock_get.side_effect = requests.exceptions.RequestException("Connection error")
+
+        with (
+            unittest.mock.patch("src.utils.file_logger"),
+            unittest.mock.patch("src.utils.logging.Logger"),
+        ):
+            result = exchange_rate("src.utils.json")
+
+        expected_result = []
+        assert result == expected_result
+
+
+@patch("src.utils.requests.get")
+@patch("src.utils.read_json")
+def test_stock_prices_success(mock_read_json, mock_requests_get):
+    # Задаем mock для read_json
+    mock_user_stocks = {"user_stocks": ["AAPL", "GOOGL"]}
+    mock_read_json.return_value = mock_user_stocks
+
+    # Задаем mock для requests.get
+    mock_response = mock.Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "Time Series (Daily)": {
+            "2023-10-01": {"4. close": "150.00"},
+            "2023-10-02": {"4. close": "152.00"},
+        }
+    }
+    mock_requests_get.return_value = mock_response
+
+    result = stock_prices("dummy_path.json")
+
+    expected_result = [
+        {"stock": "AAPL", "price": 150.00},
+        {"stock": "GOOGL", "price": 150.00},
+    ]
+    assert result == expected_result
+
+
+@patch("src.utils.requests.get")
+@patch("src.utils.read_json")
+def test_stock_prices_no_data(mock_read_json, mock_requests_get):
+    # Задаем mock для read_json
+    mock_user_stocks = {"user_stocks": ["INVALID_STOCK"]}
+    mock_read_json.return_value = mock_user_stocks
+
+    # Задаем mock для requests.get
+    mock_response = mock.Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"Note": "API call frequency limit reached"}
+    mock_requests_get.return_value = mock_response
+
+    result = stock_prices("dummy_path.json")
+
+    expected_result = []
+    assert result == expected_result
+
+
+@patch("src.utils.requests.get")
+@patch("src.utils.read_json")
+def test_stock_prices_request_error(mock_read_json, mock_requests_get):
+    # Задаем mock для read_json
+    mock_user_stocks = {"user_stocks": ["AAPL"]}
+    mock_read_json.return_value = mock_user_stocks
+
+    # Задаем mock для requests.get, который вызывает исключение
+    mock_requests_get.side_effect = requests.exceptions.RequestException("Request failed")
+
+    result = stock_prices("dummy_path.json")
+
+    expected_result = []
+    assert result == expected_result

@@ -8,8 +8,6 @@ import datetime
 from dateutil.relativedelta import relativedelta
 
 from config import LOGS_DIR
-from src.utils import read_exsel
-from src.views import operations_path
 
 log_file_path = os.path.join(LOGS_DIR, "reports.log")
 file_logger = logging.getLogger("reports")
@@ -44,10 +42,9 @@ def spending_by_category(transactions: pd.DataFrame, category: str, date: Option
 
     date_pattern_rep = r"^\d{2}\.\d{2}\.\d{4}$"
     file_logger.info("Начало работы функции")
-    transactions["Категория"] = transactions["Категория"].str.lower()
     transactions["Дата платежа"] = pd.to_datetime(transactions["Дата платежа"], format="%d.%m.%Y")
     if date is None:
-        date = datetime.datetime.now().strftime('%d.%m.%Y')
+        date = datetime.datetime.now().strftime("%d.%m.%Y")
 
     if re.match(date_pattern_rep, date):
         date_end = datetime.datetime.strptime(date, "%d.%m.%Y")
